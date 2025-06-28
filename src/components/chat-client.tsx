@@ -161,7 +161,7 @@ export function ChatClient({
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-secondary/50">
+      <div className="flex min-h-screen bg-secondary/50 w-full">
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center gap-2">

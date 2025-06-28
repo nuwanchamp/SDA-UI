@@ -5,8 +5,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { API_BASE_URL, AUTH_COOKIE_NAME, IS_API_MOCKING_ENABLED } from "@/lib/constants";
 import type { HistoryItem, Document } from "@/lib/types";
-import { rephraseQuestion as rephraseQuestionFlow } from "@/ai/flows/rephrase-question";
-
 async function getAuthToken() {
   return cookies().get(AUTH_COOKIE_NAME)?.value;
 }
@@ -24,7 +22,7 @@ export async function getHistory(): Promise<HistoryItem[]> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/history`, {
+    const response = await fetch(`http://${API_BASE_URL}/history`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',
     });
@@ -42,7 +40,7 @@ export async function uploadDocument(formData: FormData): Promise<{ success: boo
 
   const file = formData.get("file") as File;
   if (!file) return { success: false, error: "No file provided" };
-  
+
   if (IS_API_MOCKING_ENABLED) {
     const newDoc = {
       id: Math.floor(Math.random() * 1000) + 1,
@@ -56,7 +54,7 @@ export async function uploadDocument(formData: FormData): Promise<{ success: boo
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/upload`, {
+    const response = await fetch(`http://${API_BASE_URL}/upload`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
@@ -67,7 +65,7 @@ export async function uploadDocument(formData: FormData): Promise<{ success: boo
     if (!response.ok) {
       return { success: false, error: result.detail || "Upload failed" };
     }
-    
+
     revalidatePath('/chat');
     return { success: true, document: result };
   } catch (error) {
@@ -81,35 +79,33 @@ export async function askQuestion(documentId: number, question: string): Promise
   if (!token) return { success: false, error: "Unauthorized" };
 
   if (IS_API_MOCKING_ENABLED) {
-    const rephrased = await rephraseQuestionFlow({ question });
     revalidatePath('/chat');
     // Simulate a delay for a more realistic feel
     await new Promise(resolve => setTimeout(resolve, 1500));
-    return { success: true, answer: `This is a mocked answer for document ${documentId} to your rephrased question: "${rephrased.rephrasedQuestion}"` };
+    return { success: true, answer: `This is a mocked answer for document ${documentId} to your question: "${question}"` };
   }
 
   try {
-    const rephrased = await rephraseQuestionFlow({ question });
 
-    const response = await fetch(`${API_BASE_URL}/ask`, {
+    const response = await fetch(`http://${API_BASE_URL}/ask`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ document_id: documentId, question: rephrased.rephrasedQuestion }),
+      body: JSON.stringify({ document_id: documentId, question: question }),
     });
 
     const result = await response.json();
     if (!response.ok) {
       return { success: false, error: result.detail || "Failed to get answer" };
     }
-    
+
     revalidatePath('/chat');
     return { success: true, answer: result.answer };
   } catch (error) {
     console.error("Ask question error:", error);
-    return { success: false, error: "An unexpected error occurred" };
+    return { success: false, error: error.message || "An unexpected error occurred" };
   }
 }
 

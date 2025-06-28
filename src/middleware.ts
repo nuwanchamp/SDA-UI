@@ -1,5 +1,6 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
-import { AUTH_COOKIE_NAME } from '@/lib/constants';
+import { AUTH_COOKIE_NAME, CORS_ALLOWED_ORIGINS } from '@/lib/constants';
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get(AUTH_COOKIE_NAME);
@@ -40,5 +41,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/login', '/signup', '/chat/:path*'],
+  matcher: ['/', '/login', '/signup', '/chat/:path*', '/api/:path*'],
 };

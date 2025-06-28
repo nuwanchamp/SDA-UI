@@ -1,8 +1,8 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -28,29 +28,27 @@ import { useToast } from "@/hooks/use-toast";
 import { loginUser } from "./actions";
 import { FileText, Loader2 } from "lucide-react";
 
-const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email.",
-  }),
-  password: z.string().min(1, {
-    message: "Password is required.",
-  }),
+const formSchema = yup.object({
+  email: yup.string().email("Please enter a valid email.").required(),
+  password: yup.string().min(1, "Password is required.").required(),
 });
+
+type FormValues = yup.InferType<typeof formSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<FormValues>({
+    resolver: yupResolver(formSchema),
     defaultValues: {
       email: "demo@example.com",
       password: "password",
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: FormValues) {
     setIsLoading(true);
     const result = await loginUser(values);
 

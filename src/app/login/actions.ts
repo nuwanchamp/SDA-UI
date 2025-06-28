@@ -1,12 +1,12 @@
 "use server";
 
-import { z } from "zod";
-import { cookies } from "next/headers";
+import * as yup from "yup";
+import {cookies} from "next/headers";
 import { API_BASE_URL, AUTH_COOKIE_NAME, IS_API_MOCKING_ENABLED } from "@/lib/constants";
 
-const formSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+const formSchema = yup.object({
+  email: yup.string().email().required(),
+  password: yup.string().min(1).required(),
 });
 
 type FormState = {
@@ -14,37 +14,31 @@ type FormState = {
   error?: string;
 };
 
+type FormValues = yup.InferType<typeof formSchema>;
+
 export async function loginUser(
-  values: z.infer<typeof formSchema>
+  values: FormValues
 ): Promise<FormState> {
-  const validatedFields = formSchema.safeParse(values);
-
-  if (!validatedFields.success) {
-    return { success: false, error: "Invalid fields" };
-  }
-  
-  const { email, password } = validatedFields.data;
-
-  if (IS_API_MOCKING_ENABLED) {
-    if (email === "demo@example.com" && password === "password") {
-        cookies().set(AUTH_COOKIE_NAME, "mock_token_generic", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            maxAge: 60 * 60 * 24 * 7, // 1 week
-            path: "/",
-        });
-        return { success: true };
-    } else {
-        return { success: false, error: "Invalid credentials for demo account." };
-    }
-  }
-
-  const formData = new URLSearchParams();
-  formData.append('username', email);
-  formData.append('password', password);
-
   try {
-    const response = await fetch(`${API_BASE_URL}/token`, {
+    const validatedFields = await formSchema.validate(values);
+    const { email, password } = validatedFields;
+
+    // If API mocking is enabled, return a mock token
+    if (IS_API_MOCKING_ENABLED) {
+      const mockToken = "mock_token_" + Math.random().toString(36).substring(2, 15);
+      cookies().set(AUTH_COOKIE_NAME, mockToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        path: "/",
+      });
+      return { success: true };
+    }
+
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+    const response = await fetch(`http://${API_BASE_URL}/token`, {
       method: "POST",
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -57,7 +51,7 @@ export async function loginUser(
       return { success: false, error: errorData.detail || "Login failed." };
     }
 
-    const data = await response.json();
+    const data = await response.json() as { access_token: string };
     const token = data.access_token;
 
     if (typeof token !== "string") {
@@ -73,6 +67,12 @@ export async function loginUser(
 
     return { success: true };
   } catch (error) {
-    return { success: false, error: "An unexpected error occurred." };
+    if (error instanceof yup.ValidationError) {
+      return { success: false, error: "Invalid fields" };
+    }
+    if (error instanceof TypeError) {
+      return {success: false, error: error.message || "An unexpected error occurred."};
+    }
+    return { success: false, error: error.message || "An unexpected error occurred." };
   }
 }
