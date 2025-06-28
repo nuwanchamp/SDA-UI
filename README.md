@@ -1,27 +1,62 @@
-# Firebase Studio
+# SDA-UI
 
-This is a NextJS starter in Firebase Studio.
+This is a Next.js application for the SDA (Semantic Document Analysis) UI.
 
 ## Getting Started
 
-To get started, take a look at src/app/page.tsx.
+### Prerequisites
 
-## Environment Variables
+- [Node.js](https://nodejs.org/) (version 20 or later)
+- npm (comes with Node.js)
 
-This project uses environment variables for configuration. Create a `.env` file in the root directory of the project with the following variables:
+## Running Locally
 
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd SDA-UI
 ```
-API_BASE_URL=your_api_base_url_here
-NEXT_PUBLIC_API_MOCKING=false
+
+2. Install dependencies:
+
+```bash
+npm install
 ```
 
-You can also copy the `.env.example` file and rename it to `.env`:
+3. Set up environment variables:
+
+Copy the example environment file and modify it as needed:
 
 ```bash
 cp .env.example .env
 ```
 
-Then update the values in the `.env` file with your actual configuration.
+Update the values in the `.env` file with your actual configuration:
+
+```
+# For local development, use localhost:8000 to connect to the API
+API_BASE_URL=localhost:8000
+NEXT_PUBLIC_API_MOCKING=false
+CORS_ALLOWED_ORIGINS=http://localhost:9002,http://127.0.0.1:9002,http://localhost:8000
+```
+
+4. Start the development server:
+
+```bash
+npm run dev
+```
+
+This will start the application in development mode on port 9002.
+
+5. Access the application at http://localhost:9002
+
+6. To build and run the production version locally:
+
+```bash
+npm run build
+npm start
+```
 
 ## Docker Setup
 
@@ -52,8 +87,9 @@ docker-compose down
 
 The Docker Compose setup uses the following environment variables with default values:
 
-- `API_BASE_URL`: Defaults to `localhost:8000`
-- `NEXT_PUBLIC_API_MOCKING`: Defaults to `true` (API mocking is enabled by default since the API service is not included)
+- `API_BASE_URL`: Defaults to `host.docker.internal:8000` (which refers to the host machine from within the Docker container)
+- `NEXT_PUBLIC_API_MOCKING`: Defaults to `true` (API mocking is enabled by default)
+- `CORS_ALLOWED_ORIGINS`: Defaults to a list of allowed origins for CORS
 
 You can override these by:
 - Setting them in your environment before running docker-compose
@@ -68,6 +104,6 @@ Note: The Docker setup does not include the API service. If you need to connect 
 If you want to build the Docker image without using Docker Compose:
 
 ```bash
-docker build -t firebase-studio .
-docker run -p 9002:9002 -e API_BASE_URL=your_api_url firebase-studio
+docker build -t sda-ui .
+docker run -p 9002:9002 -e API_BASE_URL=your_api_url -e NEXT_PUBLIC_API_MOCKING=false sda-ui
 ```
